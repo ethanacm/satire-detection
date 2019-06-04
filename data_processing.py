@@ -1,6 +1,7 @@
 import json
 import random
 import string
+import operator
 
 data = []
 with open('Sarcasm_Headlines_Dataset.json','r') as file:
@@ -13,7 +14,7 @@ training_set = data[:int(.8 * len(data))]
 validate_set = data[int(.8 * len(data)):int(.9 * len(data))]
 test_set = data[int(.9 * len(data)):]
 
-def get_vocab_from_set(headlines, vocab_size=None):
+def get_vocab_from_set(headlines, limit = None):
     vocab = {}
     for headline in headlines:
         text = headline['headline'].replace('-',' ').split()
@@ -21,7 +22,7 @@ def get_vocab_from_set(headlines, vocab_size=None):
             table = str.maketrans(dict.fromkeys(string.punctuation))
             word = word.translate(table)
             try:
-                a = float(word)
+                float(word)
                 if '#NUMBER#' in vocab:
                     vocab['#NUMBER#'] += 1
                 else:
@@ -31,7 +32,14 @@ def get_vocab_from_set(headlines, vocab_size=None):
                     vocab[word] += 1
                 else:
                     vocab[word] = 1
-    return vocab
+    if limit is None:
+        return set(vocab.keys())
+    else:
+        return_vocab = set()
+        sorted_dict = sorted(vocab.items(), key=operator.itemgetter(1))
+        for word in sorted_dict[:limit]:
+            return_vocab.add(word[0])
+        return return_vocab
 
 print(get_vocab_from_set(training_set))
 #print(get_vocab_from_set(validate_set))
