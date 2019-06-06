@@ -41,6 +41,15 @@ def get_vocab_from_set(headlines, limit = None):
             return_vocab.add(word[0])
         return return_vocab
 
+def sentence_to_vect(sentence, vocab, features):
+    sentence_features = {}
+    for feature in features:
+        sentence_features = sentence_features.update(feature(sentence))
+    
+
+
+
+
 print(get_vocab_from_set(training_set))
 #print(get_vocab_from_set(validate_set))
 #print(get_vocab_from_set(test_set))
