@@ -1,55 +1,57 @@
 
 
-def num_dashes(headline):
+
+
+def num_dashes(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_dashes': headline.count('-') + headline.count('–')}
 
-def num_words(headline):
+def num_words(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_words': len(headline.split())}
 
-def num_possessive(headline):
+def num_possessive(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_posessive': headline.count("'s")}
 
-def num_hyphens(headline):
+def num_hyphens(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_hyphens': headline.count("-")}
 
-def num_commas(headline):
+def num_commas(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_commas': headline.count(",")}
 
-def num_colons(headline):
+def num_colons(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_commas': headline.count(":")}
 
-def num_semicolons(headline):
+def num_semicolons(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
     """
     return {'num_commas': headline.count(";")}
 
-def avg_word_length(headline):
+def avg_word_length(self, headline):
     """
     :param headline: headline to parse
     :return: dict of features for that headline
