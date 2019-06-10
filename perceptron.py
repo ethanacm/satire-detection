@@ -343,11 +343,6 @@ if __name__ == "__main__":
     eval_metrics(tvalid_labels, tvalid_preds)
     print('Tree Test Metrics:')
     eval_metrics(ttest_labels, ttest_preds)
-    print()
-    print("Bayes Validation Metrics")
-    eval_metrics(tvalid_labels, bayes_valid)
-    print("Bayes Test Metrics")
-    eval_metrics(ttest_labels, bayes_test)
 
     print()
     perceptron.fit_knn()
