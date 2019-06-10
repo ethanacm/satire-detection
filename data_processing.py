@@ -54,9 +54,9 @@ class DataProcessing:
             return set(vocab.keys())
         else:
             return_vocab = set()
-            print('items', vocab.items())
+            #print('items', vocab.items())
             sorted_dict = sorted(vocab.items(), key=lambda item: -item[1])
-            print('sorted', sorted_dict)
+            #print('sorted', sorted_dict)
             for word in sorted_dict[:limit]:
                 return_vocab.add(word[0])
             return_vocab.add('<UNK>')
