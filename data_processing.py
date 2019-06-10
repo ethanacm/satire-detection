@@ -2,6 +2,7 @@ import json
 import random
 import string
 import operator
+from textblob import TextBlob
 
 LIMIT = 10000
 
@@ -61,6 +62,43 @@ class DataProcessing:
                 return_vocab.add(word[0])
             return_vocab.add('<UNK>')
             return return_vocab
+
+        # def get_two_grams(self, headlines, limit=None):
+        #     if not self.preprocessed_vocab:
+        #         self.vocab = self.get_vocab_from_set(self.training_set, limit=LIMIT)
+        #         self.preprocessed_vocab = True
+        #     return self.vocab
+        #
+        # def get_two_grams_from_set(self, headlines, limit=None):
+        #     vocab = {}
+        #     for headline in headlines:
+        #         text = headline['headline'].replace('-', ' ').split()
+        #         for word in text:
+        #             table = str.maketrans(dict.fromkeys(string.punctuation))
+        #             word = word.translate(table)
+        #             try:
+        #                 float(word)
+        #                 if '#NUMBER#' in vocab:
+        #                     vocab['#NUMBER#'] += 1
+        #                 else:
+        #                     vocab['#NUMBER#'] = 1
+        #             except:
+        #                 if word in vocab:
+        #                     vocab[word] += 1
+        #                 else:
+        #                     vocab[word] = 1
+        #     if limit is None:
+        #         return set(vocab.keys())
+        #     else:
+        #         return_vocab = set()
+        #         print('items', vocab.items())
+        #         sorted_dict = sorted(vocab.items(), key=lambda item: -item[1])
+        #         print('sorted', sorted_dict)
+        #         for word in sorted_dict[:limit]:
+        #             return_vocab.add(word[0])
+        #         return_vocab.add('<UNK>')
+        #         return return_vocab
+
 
     def get_word_counts_by_label(self, headlines):
         vocab = {1: {},
@@ -152,3 +190,11 @@ class DataProcessing:
             except:
                 words_dict['<UNK>'] += 1
         return words_dict
+
+    # def sentiment(self, headline):
+    #     blob = TextBlob(headline)
+    #     for sentence in blob.sentences:
+    #         print(sentence.sentiment.polarity)
+    #
+    # def two_grams(self, headline):
+    #     blob = TextBlob(headline)
