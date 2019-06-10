@@ -1,7 +1,11 @@
 import numpy as np
 import data_processing
 import string
-
+import sklearn
+import pickle
+from sklearn import tree
+from sklearn import neighbors
+import bayesline
 
 class Perceptron():
 
@@ -10,7 +14,7 @@ class Perceptron():
         self.weights = self.sentence_to_vect('', self.feature_functions)
         self.data = data
         self.bias = 0
-        print(len(self.weights),self.weights)
+        #print(len(self.weights),self.weights)
         for key, value in self.weights.items():
             assert value == 0
 
@@ -20,6 +24,130 @@ class Perceptron():
             sentence_features.update(feature(sentence))
         return sentence_features
 
+    def sentence_to_vector(self, sentence, features):
+        sentence_features = {}
+        for feature in features:
+            sentence_features.update(feature(sentence))
+        sorted_keys = sorted(sentence_features)
+        arr = np.ndarray(len(sentence_features))
+        for i, key in enumerate(sorted_keys):
+            arr[i] = sentence_features[key]
+        return arr
+
+    def fit_knn(self, neighs = 7):
+        arr = None
+        labs = []
+        print('assembling data')
+        for index, headline in enumerate(self.data.training_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            labs.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr is None:
+                size = (len(self.data.training_set), len(vect) )
+                arr = np.ndarray(size)
+            arr[index] = vect
+        print('fitting tree')
+        knn = neighbors.KNeighborsClassifier(n_neighbors = neighs)
+        knn.fit(arr, labs)
+        self.knn = knn
+
+    def classify_knn(self):
+        arr = None
+        valid_labels = []
+        test_labels = []
+        arr2 = None
+        for index, headline in enumerate(self.data.validate_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            valid_labels.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr is None:
+                size = (len(self.data.validate_set), len(vect) )
+                arr = np.ndarray(size)
+            arr[index] = vect
+        for index, headline in enumerate(self.data.test_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            test_labels.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr2 is None:
+                size = (len(self.data.test_set), len(vect) )
+                arr2 = np.ndarray(size)
+            arr2[index] = vect
+        valid_preds = self.knn.predict(arr)
+        test_preds = self.knn.predict(arr2)
+        return valid_preds, test_preds, valid_labels, test_labels
+
+    def majority_vote_prediction(self,preds1, preds2, preds3):
+        preds = []
+        for i in range(0,len(preds1)):
+            count0 = 0
+            count1 = 0
+            if preds1[i] == 0:
+                count0 += 1
+            else:
+                count1 += 1
+            if preds2[i] == 0:
+                count0 += 1
+            else:
+                count1 += 1
+            if preds3[i] == 0:
+                count0 += 1
+            else:
+                count1 += 1
+            if count0 > count1:
+                preds.append(0)
+            else:
+                preds.append(1)
+        return preds
+
+    def fit_decision_tree(self):
+        arr = None
+        labs = []
+        print('assembling data for fitting tree')
+        for index, headline in enumerate(self.data.training_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            labs.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr is None:
+                size = (len(self.data.training_set), len(vect) )
+                arr = np.ndarray(size)
+            arr[index] = vect
+        print('fitting tree')
+        tree = sklearn.tree.DecisionTreeClassifier(criterion='entropy')
+        tree.fit(arr, labs)
+        pickle.dump(tree, open('decision_tree.p','wb'))
+        self.tree = tree
+
+    def classify_decision_tree(self):
+        arr = None
+        valid_labels = []
+        test_labels = []
+        arr2 = None
+        for index, headline in enumerate(self.data.validate_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            valid_labels.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr is None:
+                size = (len(self.data.validate_set), len(vect) )
+                arr = np.ndarray(size)
+            arr[index] = vect
+        for index, headline in enumerate(self.data.test_set):
+            title = headline['headline']
+            label = headline['is_sarcastic']
+            test_labels.append(label)
+            vect = self.sentence_to_vector(title, self.feature_functions)
+            if arr2 is None:
+                size = (len(self.data.test_set), len(vect) )
+                arr2 = np.ndarray(size)
+            arr2[index] = vect
+        valid_preds = self.tree.predict(arr)
+        test_preds = self.tree.predict(arr2)
+        return valid_preds, test_preds, valid_labels, test_labels
+        
     def train(self, iterations=1):
         for i in range(iterations):
             for data_point in self.data.training_set:
@@ -44,6 +172,20 @@ class Perceptron():
             sum += sentence_dict[key] * self.weights[key] + self.bias
         return sum
 
+    def predict(self, data_set):
+        preds = []
+        for data_point in data_set:
+            label = data_point['is_sarcastic']
+            if label == 0:
+                label = -1
+            eval = self.classify(self.sentence_to_vect(data_point['headline'], self.feature_functions))
+            if eval > 0:
+                preds.append(1)
+            else:
+                preds.append(0)
+        return preds
+
+
     def evaluate_effectiveness(self, data_set):
         true_positive = 0
         true_negative = 0
@@ -51,11 +193,16 @@ class Perceptron():
         false_positive = 0
         strange = 0
         total = 0
+        preds = []
         for data_point in data_set:
             label = data_point['is_sarcastic']
             if label == 0:
                 label = -1
             eval = self.classify(self.sentence_to_vect(data_point['headline'], self.feature_functions))
+            if eval > 0:
+                preds.append(1)
+            else:
+                preds.append(0)
             # if eval < 0:
             #     print(data_point['headline'])
             if label > 0 and eval > 0:
@@ -75,6 +222,7 @@ class Perceptron():
         recall = true_positive / (true_positive + false_negative)
         f1 = 2 * precision * recall /(precision + recall)
         print('acc', acc, 'precision', precision, 'recall', recall, 'f1', f1,sep = '\t')
+        return preds
 
 def evaluate_baseline(dataset, word_counts):
     true_positive = 0
@@ -113,9 +261,52 @@ def evaluate_baseline(dataset, word_counts):
     f1 = 2 * precision * recall / (precision + recall)
     print('BASELINE')
     print('acc', acc, 'precision', precision, 'recall', recall, 'f1', f1, sep='\t')
+    
+def get_accuracy(true, predicted):
+    right = 0.0
+    for i in range(0, len(predicted)):
+        if true[i] == predicted[i]:
+            right += 1
+    return right/len(predicted)
+
+def get_precision(true, predicted):
+    tp = 0.0
+    fp = 0.0
+    for i in range(0, len(predicted)):
+        if true[i] == 1 and predicted[i] == 1:
+            tp += 1
+        elif true[i] == 1 and predicted[i] == 0:
+            fp += 1
+    if tp == 0 and fp == 0:
+        return 0
+    return tp/(tp + fp)
+
+def get_recall(true, predicted):
+    tp = 0.0
+    fn = 0.0
+    for i in range(0, len(predicted)):
+        if true[i] == 1 and predicted[i] == 1:      
+            tp += 1
+        elif true[i] == 0 and predicted[i] == 1:
+            fn += 1
+    if tp == 0 and fn == 0:
+        return 0
+    return tp/(tp + fn)
+
+def get_f1(true, predicted):
+    precision = get_precision(true, predicted)
+    recall = get_recall(true, predicted)
+    if precision == 0 and recall == 0:
+        return 0
+    return 2 * (precision * recall) / (precision + recall)
 
 
-
+def eval_metrics(labels, preds):
+    kacc = round(get_accuracy(labels, preds), 4)
+    kf1 = round(get_f1(labels, preds), 4)
+    kpre = round(get_precision(labels, preds), 4)
+    krec = round(get_recall(labels, preds), 4)
+    print ('Accuracy:', kacc, 'Precision:', kpre, 'Recall:', krec, 'F1:', kf1, sep = '\t')
 
 
 if __name__ == "__main__":
@@ -127,52 +318,52 @@ if __name__ == "__main__":
                 _data.num_commas,
                 _data.num_colons,
                 _data.num_semicolons,
+                _data.ampersands,
+                _data.dollars,
+                _data.percents,
+                _data.parens,
+                _data.question,
+                _data.exclamation,
                 _data.frequent_words,
-                # _data.sentiment
-
-                ]
+            ]
+    
+    
+    
 
     baseline_vocab = _data.get_word_counts_by_label(_data.training_set)
     evaluate_baseline(_data.validate_set, baseline_vocab)
     evaluate_baseline(_data.test_set, baseline_vocab)
-
-
-
     perceptron = Perceptron(FEATURES, _data)
-
-    perceptron.train(1)
-    perceptron.evaluate_effectiveness(_data.validate_set)
+    
+    perceptron.fit_decision_tree()
+    tvalid_preds, ttest_preds, tvalid_labels, ttest_labels = perceptron.classify_decision_tree()
+    print('Tree Validation Metrics:')
+    eval_metrics(tvalid_labels, tvalid_preds)
+    print('Tree Test Metrics:')
+    eval_metrics(ttest_labels, ttest_preds)
+    
+    perceptron.fit_knn()
+    kvalid_preds, ktest_preds, kvalid_labels, ktest_labels  = perceptron.classify_knn()
+    print('KNN Validation Metrics:')
+    eval_metrics(kvalid_labels, kvalid_preds)
+    print('KNN Test Metrics:')
+    eval_metrics(ktest_labels, ktest_preds)
+    
     print('train data:')
-    perceptron.evaluate_effectiveness(_data.training_set)
-    perceptron.train(1)
-    perceptron.evaluate_effectiveness(_data.validate_set)
-    perceptron.train(1)
-    perceptron.evaluate_effectiveness(_data.validate_set)
-    perceptron.train(1)
+    for i in range(0,15):
+        perceptron.train(1)
+        print('Perceptron Validation Set:')
+        valid_perceptron_preds = perceptron.predict(_data.validate_set)
+        eval_metrics(kvalid_labels, valid_perceptron_preds)
+        print('Perceptron Test Set')
+        test_perceptron_preds = perceptron.predict(_data.test_set)
+        eval_metrics(ktest_labels, test_perceptron_preds)
+        print('Majority Vote Validation Set:')
+        majority_val_preds = perceptron.majority_vote_prediction(valid_perceptron_preds, kvalid_preds, tvalid_preds)
+        eval_metrics(kvalid_labels, majority_val_preds)
+        print('Majority Vote Test Set:')
+        majority_test_preds = perceptron.majority_vote_prediction(test_perceptron_preds, ktest_preds, ttest_preds)
+        eval_metrics(ktest_labels, majority_test_preds)
 
-    perceptron.evaluate_effectiveness(_data.test_set)
+    
     print('done')
-
-# class Perceptron(object):
-#
-#     def __init__(self, no_of_inputs, threshold=100, learning_rate=0.01):
-#         self.threshold = threshold
-#         self.learning_rate = learning_rate
-#         self.weights = np.zeros(no_of_inputs + 1)
-#
-#     def predict(self, inputs):
-#         summation = np.dot(inputs, self.weights[1:]) + self.weights[0]
-#         if summation > 0:
-#             activation = 1
-#         else:
-#             activation = 0
-#         return activation
-#
-#     def train(self, training_inputs, labels):
-#         for _ in range(self.threshold):
-#             for inputs, label in zip(training_inputs, labels):
-#                 prediction = self.predict(inputs)
-#                 self.weights[1:] += self.learning_rate * (label - prediction) * inputs
-#                 self.weights[0] += self.learning_rate * (label - prediction)
-#
-#

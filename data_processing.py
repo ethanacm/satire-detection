@@ -4,7 +4,7 @@ import string
 import operator
 from textblob import TextBlob
 
-LIMIT = 10000
+LIMIT = 3000
 
 
 class DataProcessing:
@@ -178,6 +178,24 @@ class DataProcessing:
         except:
             return {'avg_word_length': 0}
 
+    def ampersands(self, headline):
+        return {'&&&': headline.count('&')}
+
+    def percents(self, headline):
+        return {'%%%': headline.count('%')}
+
+    def dollars(self, headline):
+        return {'$$$': headline.count('$')}
+
+    def question(self, headline):
+        return {'???': headline.count('?')}
+
+    def exclamation(self, headline):
+        return {'???': headline.count('!')}
+
+
+    def parens(self, headline):
+        return {'parens': headline.count('(') + headline.count(')') + headline.count('[') + headline.count(']')}
 
     def frequent_words(self, headline):
         words_dict = dict.fromkeys(self.vocab, 0)
