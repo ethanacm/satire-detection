@@ -37,7 +37,7 @@ class Perceptron():
     def fit_knn(self, neighs = 7):
         arr = None
         labs = []
-        print('assembling data')
+        print('assembling data for fitting knn')
         for index, headline in enumerate(self.data.training_set):
             title = headline['headline']
             label = headline['is_sarcastic']
@@ -47,7 +47,7 @@ class Perceptron():
                 size = (len(self.data.training_set), len(vect) )
                 arr = np.ndarray(size)
             arr[index] = vect
-        print('fitting tree')
+        print('fitting knn')
         knn = neighbors.KNeighborsClassifier(n_neighbors = neighs)
         knn.fit(arr, labs)
         self.knn = knn
@@ -118,7 +118,6 @@ class Perceptron():
         print('fitting tree')
         tree = sklearn.tree.DecisionTreeClassifier(criterion='entropy')
         tree.fit(arr, labs)
-        pickle.dump(tree, open('decision_tree.p','wb'))
         self.tree = tree
 
     def classify_decision_tree(self):
@@ -259,7 +258,6 @@ def evaluate_baseline(dataset, word_counts):
     precision = true_positive / (true_positive + false_positive)
     recall = true_positive / (true_positive + false_negative)
     f1 = 2 * precision * recall / (precision + recall)
-    print('BASELINE')
     print('acc', acc, 'precision', precision, 'recall', recall, 'f1', f1, sep='\t')
     
 def get_accuracy(true, predicted):
@@ -311,6 +309,7 @@ def eval_metrics(labels, preds):
 
 if __name__ == "__main__":
     _data = data_processing.DataProcessing()
+    bayes = bayesline.BayesClassifier()
     FEATURES = [_data.num_dashes,
                 _data.avg_word_length,
                 _data.num_words,
@@ -326,31 +325,41 @@ if __name__ == "__main__":
                 _data.exclamation,
                 _data.frequent_words,
             ]
-    
+    perceptron = Perceptron(FEATURES, _data)
     
     
 
     baseline_vocab = _data.get_word_counts_by_label(_data.training_set)
+    print("Word Counts Baseline Validation Set")
     evaluate_baseline(_data.validate_set, baseline_vocab)
+    print("Word Counts Baseline Test Set")
     evaluate_baseline(_data.test_set, baseline_vocab)
-    perceptron = Perceptron(FEATURES, _data)
     
+    bayes_valid = bayes.bayes_classify(_data.validate_set)
+    bayes_test = bayes.bayes_classify(_data.test_set)
+    print()
     perceptron.fit_decision_tree()
     tvalid_preds, ttest_preds, tvalid_labels, ttest_labels = perceptron.classify_decision_tree()
     print('Tree Validation Metrics:')
     eval_metrics(tvalid_labels, tvalid_preds)
     print('Tree Test Metrics:')
     eval_metrics(ttest_labels, ttest_preds)
-    
+    print()
+    print("Bayes Validation Metrics")
+    eval_metrics(tvalid_labels, bayes_valid)
+    print("Bayes Test Metrics")
+    eval_metrics(ttest_labels, bayes_test)
+
+    print()
     perceptron.fit_knn()
     kvalid_preds, ktest_preds, kvalid_labels, ktest_labels  = perceptron.classify_knn()
     print('KNN Validation Metrics:')
     eval_metrics(kvalid_labels, kvalid_preds)
     print('KNN Test Metrics:')
     eval_metrics(ktest_labels, ktest_preds)
-    
-    print('train data:')
+    print()
     for i in range(0,15):
+        print("Epoch", i)
         perceptron.train(1)
         print('Perceptron Validation Set:')
         valid_perceptron_preds = perceptron.predict(_data.validate_set)
@@ -358,12 +367,14 @@ if __name__ == "__main__":
         print('Perceptron Test Set')
         test_perceptron_preds = perceptron.predict(_data.test_set)
         eval_metrics(ktest_labels, test_perceptron_preds)
+        print()
         print('Majority Vote Validation Set:')
         majority_val_preds = perceptron.majority_vote_prediction(valid_perceptron_preds, kvalid_preds, tvalid_preds)
         eval_metrics(kvalid_labels, majority_val_preds)
         print('Majority Vote Test Set:')
         majority_test_preds = perceptron.majority_vote_prediction(test_perceptron_preds, ktest_preds, ttest_preds)
         eval_metrics(ktest_labels, majority_test_preds)
+        print('\n\n')
 
     
     print('done')
