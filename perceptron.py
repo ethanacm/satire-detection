@@ -127,11 +127,14 @@ if __name__ == "__main__":
                 _data.num_commas,
                 _data.num_colons,
                 _data.num_semicolons,
-                _data.frequent_words
+                _data.frequent_words,
+                # _data.sentiment
+
                 ]
 
     baseline_vocab = _data.get_word_counts_by_label(_data.training_set)
-    evaluate_baseline(_data.training_set, baseline_vocab)
+    evaluate_baseline(_data.validate_set, baseline_vocab)
+    evaluate_baseline(_data.test_set, baseline_vocab)
 
 
 
@@ -139,6 +142,8 @@ if __name__ == "__main__":
 
     perceptron.train(1)
     perceptron.evaluate_effectiveness(_data.validate_set)
+    print('train data:')
+    perceptron.evaluate_effectiveness(_data.training_set)
     perceptron.train(1)
     perceptron.evaluate_effectiveness(_data.validate_set)
     perceptron.train(1)
